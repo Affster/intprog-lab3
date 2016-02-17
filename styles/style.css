@@ -1,0 +1,16 @@
+body {
+	background-color: #abcdef;
+	font-family: Arial;
+	font-size: 16px;
+	text-align: center;
+}
+
+h1 {
+	font-size: 40px;
+}
+
+.boardGame {
+	font-weight: bold;
+	color: rgba(244,244,0,1);
+	text-shadow: 3px 3px 0 rgba(255,0,170,1), 6px 6px 0 rgba(0,255,55,1), 9px 9px 0 rgba(255,0,170,1);
+}
