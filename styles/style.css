@@ -18,5 +18,8 @@ h1 {
 button {
 	background-color: #fff;
 	padding: 20px;
-	height: 20px;
+}
+
+button:disabled {
+	background-color: #ccc;
 }
