@@ -1,84 +1,103 @@
 "use strict";
 
 var Battleship = function() {
+	var width = 9;
+	var height = 9;
+	var tiles = width*height;
+
 	var board = new Map();
-	var placedShips = new Map();
-	var attacked = new Map();
 
-	/*function changeColor(id) {
-		//element.style.backgroundColor = "red";
-		console.log(board.get(id));
+	var shipsP1 = new Map();
+	var shipsP2 = new Map();
+	var shotsP1 = new Map();
+	var shotsP2 = new Map();
 
-		$("button"+id).style = 'background-color:red';
-	}*/
+	var p1Ships = 0;
+	var p2Ships = 0;
+	var p1Shots = 0;
+	var p2Shots = 0;
+	var p1Sunk = 0;
+	var p2Sunk = 0;
 
-	/*
-	var Button = function(id) {
-		var id = id;
-		var clicked = false;
-		var bg = '#fff';
+	var output = document.getElementById("battleships");
+	var sBoard = document.getElementById("scoreboard");
 
-		this.clicked = function() {
-			if(clicked) {
-				clicked = false;
-				bg = '#fff';
-			} else {
-				clicked = true;
-				bg = '#ff0000';
-			}
-		}
+	var attackmode = false;
+	var playerTurn = 1;
+	var gameOver = false;
 
-		this.getButton = function() {
-			return button;
-		}
-
-		var button = document.createElement("BUTTON");
-		var text = document.createTextNode(" ");
-		button.appendChild(text);
-		button.addEventListener("click", this.clicked);
-
-		board.set(id,this);
-	}
-	*/
-
-	function createBoard(width,height) {
-		var id = 0;
-		var numShips = 0;
-		var output = document.getElementById("battleships");
-		$(output).html("Player 1: Place your ships! <br />");
-		var setShips = document.getElementById("shipInfo");
-		$(setShips).html("# of ships: " + numShips);
-
+	function createTiles() {
+		//var id = 0;
 		for(var i = 0; i < height; i++) {
 			for(var j = 0; j < width; j++) {
 				var button = document.createElement("BUTTON");
 				var text = document.createTextNode(" ");
 				button.appendChild(text);
-				button.setAttribute("id","button"+id);
-				//button.setAttribute("disabled","disabled")
+				button.setAttribute("id", i*width+j);
 				button.style = "background-color:white";
 
 				button.addEventListener("click", function() {
-					if(this.style.backgroundColor == "white") {
-						this.style = "background-color:red";
-						numShips++;
-						$(setShips).html("# of ships: " + numShips);
+					//Some function
+					if(attackmode) {
+						shoot(this.id,playerTurn);
 					} else {
-						this.style = "background-color:white";
-						numShips--;
-						$(setShips).html("# of ships: " + numShips);
+						changeColor(this.id);
 					}
 				});
-				board.set(id,button);
+				board.set(i*width+j, button);
+			}
+		}
+	}
 
-				$(output).append(button);
-				id++;
+	function drawBoard(playerID) {
+		clearBoard();
+		for(var i = 0; i < height; i++) {
+			for(var j = 0; j < width; j++) {
+				var tile = i*width+j;
+				if(playerID == 1) {
+					if(shotsP1.get(tile) == "miss") {
+						board.get(tile).style = "background-color:red";
+					} else if(shotsP1.get(tile) == "hit") {
+						board.get(tile).style = "background-color:green";
+					}
+				} else {
+					if(shotsP2.get(tile) == "miss") {
+						board.get(tile).style = "background-color:red";
+					} else if(shotsP2.get(tile) == "hit") {
+						board.get(tile).style = "background-color:green";
+					}
+				}
+				$(output).append(board.get(i*width+j));
 			}
 			$(output).append("<br />");
 		}
+		
+	}
+
+	function saveShips(playerID) {
+		for(var i = 0; i < tiles; i++) {
+			if(board.get(i).style.backgroundColor == "red") {
+				if(playerID == 1) {
+					shipsP1.set(i,true);
+					p1Ships++;
+				} else {
+					shipsP2.set(i,true);
+					p2Ships++;
+				}
+			}
+		}
+	}
+
+	function placeShips(playerID) {
+		playerTurn = playerID;
+		var numShips = 0;
+
+		$(output).html("<h2>Player " + playerID + "</h2>Place your ships! <br /><br />");
+
+		drawBoard();
 
 		var startButton = document.createElement("BUTTON");
-		var startText = document.createTextNode("START");
+		var startText = document.createTextNode("DONE");
 		startButton.appendChild(startText);
 
 		var resetButton = document.createElement("BUTTON");
@@ -86,85 +105,108 @@ var Battleship = function() {
 		resetButton.appendChild(resetText);
 
 		startButton.addEventListener("click", function() {
-			for(var i = 0; i < (width*height); i++) {
-				board.get(i).setAttribute("disabled","disabled");
-				//board.get(i).style = "background-color:white";
-				if(board.get(i).style.backgroundColor == "red") {
-					placedShips.set(i,true);
-				}
+			if(playerID == 1) {
+				saveShips(1);
+				placeShips(2);
+			} else {
+				attackmode = true;
+				saveShips(2);
+				attack(1);
 			}
-			resetButton.setAttribute("disabled","disabled");
-			startButton.setAttribute("disabled","disabled");
-			attackBoard(width,height,numShips);
 		});
 
 		resetButton.addEventListener("click", function() {
-			for(var i = 0; i < (width*height); i++) {
-				board.get(i).style = "background-color:white";
-				numShips = 0;
-				$(setShips).html("# of ships: " + numShips);
-			}
+			clearBoard();
 		});
 
 		$(output).append(startButton);
-		$(output).append(resetButton);
+		$(output).append(resetButton);		
 	}
 
-	function attackBoard(width,height,numPlacedShips) {
-		var id = 0;
-		var hitShips = 0;
-		var shotsFired = 0;
+	function attack(playerID) {
+		sBoard.style.visibility = "visible";
+		scoreboard();
+		isFinished();
 
-		var output = document.getElementById("battleships");
-		$(output).html("Player 2: Shoot the ships!<br />");
-
-		var setShipInfo = document.getElementById("shipInfo");
-		$(setShipInfo).html("# of placed ships: " + numPlacedShips + "<br /># of hit ships: " + hitShips + "<br /># of shots fired: " + shotsFired);
-
-		for(var i = 0; i < height; i++) {
-			for(var j = 0; j < width; j++) {
-				var button = document.createElement("BUTTON");
-				var text = document.createTextNode(" ");
-
-				button.appendChild(text);
-				button.setAttribute("id","button"+id);
-				//button.setAttribute("disabled","disabled")
-				button.style = "background-color:white";
-
-				if(placedShips.get(id) == true) {
-					button.addEventListener("click", function() {
-						this.style = "background-color:green";
-						shotsFired++;
-						hitShips++;
-						$(setShipInfo).html("# of placed ships: " + numPlacedShips + "<br /># of hit ships: " + hitShips + "<br /># of shots fired: " + shotsFired);
-						if(hitShips == numPlacedShips) {
-							finishedGame();
-						}
-					});
-				} else {
-					button.addEventListener("click", function() {
-						this.style = "background-color:red";
-						shotsFired++;
-						$(setShipInfo).html("# of placed ships: " + numPlacedShips + "<br /># of hit ships: " + hitShips + "<br /># of shots fired: " + shotsFired);
-					});
-				}
-
-				$(output).append(button);
-				id++;
-			}
-			$(output).append("<br />");
+		if(!gameOver) {
+			playerTurn = playerID;
+			$(output).html("<h2>Player " + playerID + "</h2>Attack! <br /><br />");
+			drawBoard(playerID);
 		}
 	}
 
-	function finishedGame() {
-		var output = document.getElementById("battleships");
-		$(output).html("Player 2 shot down all of the ships!<br />");
+	function changeColor(idIN) {
+		var id = parseInt(idIN);
+		if(board.get(id).style.backgroundColor == "white") {
+			board.get(id).style = "background-color:red";
+		} else {
+			board.get(id).style = "background-color:white";
+		}
 	}
 
-	var width = 9;
-	var height = 9;
+	function clearBoard() {
+		for(var i = 0; i < tiles; i++) {
+			board.get(i).style = "background-color:white";
+		}
+	}
 
-	createBoard(width,height);
+	function shoot(tileID, playerID) {
+		var tile = parseInt(tileID);
+		sBoard.style.visibility = "hidden";
+
+		if(playerID == 1) {
+			if((shotsP1.get(tile) != "hit") && (shotsP1.get(tile) != "miss")) {
+				if(shipsP2.get(tile)) {
+					shotsP1.set(tile,"hit");
+					$(output).html("<h1 class=\"largeText\">HIT!</h1>");
+					p1Sunk++;
+					p1Shots++;
+				} else {
+					shotsP1.set(tile,"miss");
+					$(output).html("<h1 class=\"largeText\">MISS!</h1>");
+					p1Shots++;
+				}
+				setTimeout(function(){ attack(2); }, 1000);
+			}
+		} else {
+			if((shotsP2.get(tile) != "hit") && (shotsP2.get(tile) != "miss")) {
+				if(shipsP1.get(tile)) {
+					shotsP2.set(tile,"hit");
+					$(output).html("<h1 class=\"largeText\">HIT!</h1>");
+					p2Sunk++;
+					p2Shots++;
+				} else {
+					shotsP2.set(tile,"miss");
+					$(output).html("<h1 class=\"largeText\">MISS!</h1>");
+					p2Shots++;
+				}
+				setTimeout(function(){ attack(1); }, 1000);
+			}
+		}
+	}
+
+	function scoreboard(){
+		sBoard.innerHTML = 
+			"<span class='alignleft'>Player 1's ships on board: </span>"+"<span align:'center'>" +p1Ships+"</span>"+
+			"<span> &nbsp&nbsp&nbspPlayer 2's ships on board: </span><span class='alignright'>"+p2Ships+ "</span><br />"+
+			"<span class='alignleft'>Player 1 shots: </span><span align:'center'>"+ p1Shots + "</span>"+
+			"<span> &nbsp&nbsp&nbspPlayer 2 shots: </span><span class='alignright'>"+ p2Shots + "</span><br />"+
+			"<span class='alignleft'>Player 1's ships sunk: </span>"+"<span align:'center'>" + p1Sunk + "</span>"+
+			"<span> &nbsp&nbsp&nbspPlayer 2's ships sunk: </span><span class='alignright'>" + p2Sunk + "</span><br/>";
+	}
+
+	function isFinished() {
+		if(p1Sunk == p2Ships) {
+			$(output).html("<h1>PLAYER 1 WINS!</h1>")
+			gameOver = true;
+		} else if(p2Sunk == p1Ships) {
+			$(output).html("<h1>PLAYER 2 WINS!</h1>")
+			gameOver = true;
+		}
+	}
+
+	createTiles(width,height);
+	placeShips(1);
 }
 
 $(function() {

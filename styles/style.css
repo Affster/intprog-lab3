@@ -15,6 +15,11 @@ h1 {
 	text-shadow: 3px 3px 0 rgba(255,0,170,1), 6px 6px 0 rgba(0,255,55,1), 9px 9px 0 rgba(255,0,170,1);
 }
 
+.largeText {
+	font-size: 300px;
+	margin-top: 100px;
+}
+
 button {
 	background-color: #fff;
 	padding: 20px;
@@ -22,4 +27,25 @@ button {
 
 button:disabled {
 	background-color: #ccc;
+}
+
+.scoreboard {
+	font-weight: bold;
+	color: rgba(0,0,0,1);
+	border-radius: 25px;
+	background: #73AD21;
+	padding: 20px;
+	width: 520px;
+	height: 55px;
+	margin-left: auto ;
+	margin-right: auto ;
+	margin-top: 3mm;
+	visibility: hidden;
+}
+
+.alignleft {
+	float: left;
+}
+.alignright {
+	float: right;
 }
